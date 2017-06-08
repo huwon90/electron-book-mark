@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <link rel="stylesheet" href="./node_modules/photonkit/dist/css/photon.css">
+</head>
+<body>
+    <div class="window">
+        <header class="toolbar toolbar-header">
+            <div class="toolbar-actions">
+                <h1 class="title">Mark's Bookmark</h1>
+                <div class="btn-group">
+                    <button id="btn_home" class="btn btn-default active">
+                        <span class="icon icon-home"></span>
+                    </button>
+                    <button id="btn_github" class="btn btn-default">
+                        <span class="icon icon-github"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="window-content">
+            <ul class="list-group" id="data"></ul>
+        </div>
+    </div>
+    <script>
+        // require('./renderer.js');
+
+        const {ipcRenderer, clipboard, shell} = require('electron');
+
+        const btnHome = document.querySelector('#btn_home');
+        const btnGithub = document.querySelector('#btn_github');
+
+        const dataDom = document.querySelector('#data');
+
+        btnHome.addEventListener('click', () => {
+            console.log('btn_home');
+            btnHome.classList.add('active');
+            btnGithub.classList.remove('active');
+
+            ipcRenderer.send('type', 'home');
+        });
+
+        btnGithub.addEventListener('click', () => {
+            console.log('btn_github');
+            btnHome.classList.remove('active');
+            btnGithub.classList.add('active');
+
+            ipcRenderer.send('type', 'github');
+        });
+
+        ipcRenderer.on('data', (event, data) => {
+            const html = data.map(item => {
+                return `
+                <li class="list-group-item">
+                    <div class="media-body">
+                        <strong><a href="#" class="clickLink">${item.url}</a></strong>
+                        <p>
+                            ${item.title}
+                            <span class="icon icon-trash pull-right"></span>
+                        </p>
+                    </div>
+                </li>
+                `;
+            });
+            dataDom.innerHTML = html.join('');
+
+            const removeDoms = document.querySelectorAll('.icon-trash');
+
+            removeDoms.forEach((removeDom, index) => {
+                removeDom.addEventListener('click', () => {
+                    ipcRenderer.send('remove', index);
+                });
+            });
+
+            const clickDoms = document.querySelectorAll('.clickLink');
+
+            clickDoms.forEach(clickDom => {
+                clickDom.addEventListener('click', e => {
+                    shell.openExternal(e.target.innerHTML);
+                });
+            });
+        });
+
+        document.addEventListener('paste', () => {
+            const text = clipboard.readText();
+            ipcRenderer.send('paste', text);
+        });
+
+    </script>
+</body>
+</html>
